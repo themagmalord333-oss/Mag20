@@ -15,14 +15,13 @@ API_HASH = "bd4c934697e7e91942ac911a5a287b46"
 # ✅ SESSION STRING
 SESSION_STRING = "BQI5Xz4AANa83p6zL0X6y2fP5eiMmu2yk9S-RAxCrgcrjGUZmMLhrbhMGyY1JJ7LdWIbEIEWymplxWx2kI2AgB10uVvXsovXavySVPt9heb_ViN6DBOkat12WVn0aciH2KJM0qyyfTZmC9QJlvxQwZZ9b6ncjFzMLEHF6cPgF4_xH9yN08S0s0t30bBo4CkjsRyHO-ImqryjeD0n9yiylcISTucBxQEpdInlDv80soVeF1KSlHj_KTd48fXlKJmhbXWdHdiN2bJKBAZzkFkT304UM4TN2PeztUW3wgnX6CMwz3GcWotmNuVJrFWKmN4I8U48tPmmhYvvPj6-deAlNekD2jwTrAAAAAFJSgVkAA"
 
-# 🎯 TARGET SETTINGS (NEW)
-TARGET_GROUP_LINK = "infobot_66"  # Link provided
-TARGET_BOT_USERNAME = "Backupinfo69_bot" # Bot provided
-
-# Manual ID Fallback (Converted to Supergroup ID format just in case)
+# 🎯 TARGET SETTINGS
+TARGET_GROUP_LINK = "infobot_66"
+TARGET_BOT_USERNAME = "Backupinfo69_bot"
 FALLBACK_ID = -1003320004816 
 
-NEW_FOOTER = "⚡ Designed & Powered by @MAGMAxRICH"
+# ✅ NEW FOOTER (User Requested)
+NEW_FOOTER = "⚡ Designed & Powered by @DuXxZx_info"
 
 # --- 🔐 SECURITY SETTINGS ---
 ALLOWED_GROUPS = [-1003387459132]
@@ -43,7 +42,7 @@ flask_app = Flask(__name__)
 
 @flask_app.route('/')
 def home():
-    return "✅ Anysnap /num Bot is Running!"
+    return "✅ Bot is Running!"
 
 def run_flask():
     port = int(os.environ.get("PORT", 8080))
@@ -77,20 +76,23 @@ def get_fsub_buttons():
     buttons.append([InlineKeyboardButton("✅ Check Subscription", callback_data="check_fsub")])
     return InlineKeyboardMarkup(buttons)
 
-# --- DASHBOARD (ONLY NUM) ---
+# --- DASHBOARD (NEW MENU) ---
 @app.on_message(filters.command(["start", "help", "menu"], prefixes="/") & (filters.private | filters.chat(ALLOWED_GROUPS)))
 async def show_dashboard(client, message):
     if not await check_user_joined(client, message.from_user.id):
         return await message.reply_text("🚫 Access Denied! Join Channels first.", reply_markup=get_fsub_buttons())
 
+    # ✅ User Defined Menu Layout
     text = (
-        "📖 **ANYSNAP NUMBER LOOKUP**\n"
-        "━━━━━━━━━━━━━━━━━━\n\n"
-        "📱 **Mobile Info:**\n"
-        "👉 Usage: `/num <10-digit-number>`\n\n"
-        "⚠️ **Note:** Result 30 seconds mein auto-delete ho jayega.\n"
-        "━━━━━━━━━━━━━━━━━━\n"
-        "⚡ **Powered by @MAGMAxRICH**"
+        "🔍 **Lookup Services:**\n\n"
+        "📱 `/num [number]` - Mobile Info\n"
+        "🚗 `/vehicle [plate]` - RC & Challan\n"
+        "🆔 `/aadhar [uid]` - Aadhaar Info\n"
+        "👨‍👩‍👧‍👦 `/familyinfo [uid]` - Family List\n"
+        "🔗 `/vnum [plate]` - Get Mobile from Vehicle\n"
+        "📨 `/sms [number]` - SMS Service\n\n"
+        "💸 `/fam [id]` - FamPay id to number Lookup\n\n"
+        f"{NEW_FOOTER}"
     )
     await message.reply_text(text, disable_web_page_preview=True)
 
@@ -102,8 +104,8 @@ async def check_fsub_callback(client, callback_query: CallbackQuery):
     else:
         await callback_query.answer("❌ Join channels first!", show_alert=True)
 
-# --- MAIN LOGIC (ONLY NUM COMMAND) ---
-COMMAND_LIST = ["num"]
+# --- MAIN LOGIC (UPDATED COMMANDS) ---
+COMMAND_LIST = ["num", "vehicle", "aadhar", "familyinfo", "vnum", "sms", "fam"]
 
 @app.on_message(filters.command(COMMAND_LIST, prefixes="/") & (filters.private | filters.chat(ALLOWED_GROUPS)))
 async def process_request(client, message):
@@ -116,16 +118,16 @@ async def process_request(client, message):
         return await message.reply_text("🚫 Access Denied!", reply_markup=get_fsub_buttons())
 
     if len(message.command) < 2:
-        return await message.reply_text(f"❌ **Data Missing!**\nUsage: `/num <number>`")
+        return await message.reply_text(f"❌ **Data Missing!**\nUsage: `/{message.command[0]} <value>`")
 
-    status_msg = await message.reply_text(f"🔍 **Searching via Anysnap...**")
+    status_msg = await message.reply_text(f"🔍 **Searching...**")
 
     try:
-        # Forward command to target group
+        # Forward command to target
         sent_req = await client.send_message(chat_id=RESOLVED_TARGET_ID, text=message.text)
         target_response = None
 
-        # Wait for bot response
+        # Wait loop
         for attempt in range(25):
             await asyncio.sleep(2)
             async for log in client.get_chat_history(RESOLVED_TARGET_ID, limit=5):
@@ -144,7 +146,7 @@ async def process_request(client, message):
             await status_msg.edit("❌ **Timeout:** Target bot ne reply nahi diya.")
             return
 
-        # --- Data Extraction ---
+        # Parsing
         raw_text = ""
         if target_response.document:
             await status_msg.edit("📂 **Downloading...**")
@@ -161,16 +163,26 @@ async def process_request(client, message):
             await status_msg.edit("❌ **No Data Found**")
             return
 
-        # --- 🧹 CLEANING LOGIC (Text Removal) ---
+        # --- 🧹 CLEANING LOGIC (REMOVING MENU & TRASH) ---
         clean_text = raw_text
-        # Add any specific text you want to remove from the new bot's output here
+        
+        # Ye sab text result se hata diya jayega
         trash_list = [
             "════════════════════════════════════",
             "★  CREDIT  ★",
             "@Backupinfo69_bot",
             "Join channel",
-            "search field", 
-            "search value"
+            "🔍 Lookup Services:",  # Removed Menu Title
+            "/num [number]",       # Removed Commands from output
+            "/vehicle [plate]",
+            "/aadhar [uid]",
+            "/familyinfo [uid]",
+            "/vnum [plate]",
+            "/sms [number]",
+            "/fam [id]",
+            "Mobile Info",         # Removed Descriptions
+            "RC & Challan",
+            "FamPay id to number Lookup"
         ]
         
         for trash in trash_list:
@@ -183,10 +195,10 @@ async def process_request(client, message):
         # --- 📝 JSON OUTPUT ---
         json_data = {
             "status": "success",
-            "query": "num",
+            "query": message.command[0],
             "input": message.command[1],
             "result": final_clean_text,
-            "credits": NEW_FOOTER
+            "credits": NEW_FOOTER  # ✅ NEW FOOTER HERE
         }
         
         formatted_output = f"```json\n{json.dumps(json_data, indent=4, ensure_ascii=False)}\n```"
@@ -200,7 +212,7 @@ async def process_request(client, message):
         await status_msg.delete()
 
     except PeerIdInvalid:
-        await status_msg.edit("⚠️ **Refreshing Connection... Try again.**")
+        await status_msg.edit("⚠️ **Refreshing... Try again.**")
         await start_bot()
     except Exception as e:
         await status_msg.edit(f"❌ **Error:** {str(e)}")
@@ -214,7 +226,6 @@ async def start_bot():
     
     print(f"🔄 Resolving Target: {TARGET_GROUP_LINK}")
     try:
-        # Priority: Resolve via Link
         try:
             chat = await app.join_chat(TARGET_GROUP_LINK)
             RESOLVED_TARGET_ID = chat.id
@@ -227,7 +238,6 @@ async def start_bot():
             print(f"⚠️ Link failed ({e}), using Fallback ID...")
             RESOLVED_TARGET_ID = FALLBACK_ID
             
-        # Refresh Cache
         await app.get_chat(RESOLVED_TARGET_ID)
 
     except Exception as e:
